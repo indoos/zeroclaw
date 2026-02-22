@@ -3513,6 +3513,8 @@ fn setup_channels() -> Result<ChannelsConfig> {
                         pair_code: (!pair_code.trim().is_empty())
                             .then(|| pair_code.trim().to_string()),
                         allowed_numbers,
+                        bot_identifier: None,
+                        response_prefix: None,
                     });
 
                     println!(
@@ -3614,6 +3616,8 @@ fn setup_channels() -> Result<ChannelsConfig> {
                     pair_phone: None,
                     pair_code: None,
                     allowed_numbers,
+                    bot_identifier: None,
+                    response_prefix: None,
                 });
             }
             ChannelMenuChoice::Linq => {

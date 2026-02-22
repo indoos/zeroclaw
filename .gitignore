@@ -29,3 +29,6 @@ venv/
 *.pem
 credentials.json
 .worktrees/
+~/.zeroclaw/state/whatsapp-web/session.db-wal
+~/.zeroclaw/state/whatsapp-web/session.db-shm
+zeroclaw.log

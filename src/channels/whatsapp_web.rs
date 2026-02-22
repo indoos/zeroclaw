@@ -58,6 +58,10 @@ pub struct WhatsAppWebChannel {
     pair_code: Option<String>,
     /// Allowed phone numbers (E.164 format) or "*" for all
     allowed_numbers: Vec<String>,
+    /// Bot identifier mention (e.g. "@ss")
+    bot_identifier: Option<String>,
+    /// Response prefix (e.g. "SS: ")
+    response_prefix: Option<String>,
     /// Bot handle for shutdown
     bot_handle: Arc<Mutex<Option<tokio::task::JoinHandle<()>>>>,
     /// Client handle for sending messages and typing indicators
@@ -81,12 +85,16 @@ impl WhatsAppWebChannel {
         pair_phone: Option<String>,
         pair_code: Option<String>,
         allowed_numbers: Vec<String>,
+        bot_identifier: Option<String>,
+        response_prefix: Option<String>,
     ) -> Self {
         Self {
             session_path,
             pair_phone,
             pair_code,
             allowed_numbers,
+            bot_identifier,
+            response_prefix,
             bot_handle: Arc::new(Mutex::new(None)),
             client: Arc::new(Mutex::new(None)),
             tx: Arc::new(Mutex::new(None)),
@@ -174,8 +182,14 @@ impl Channel for WhatsAppWebChannel {
         }
 
         let to = self.recipient_to_jid(&message.recipient)?;
+        let body_text = if let Some(prefix) = &self.response_prefix {
+            format!("{prefix}{}", message.content)
+        } else {
+            message.content.clone()
+        };
+
         let outgoing = wa_rs_proto::whatsapp::Message {
-            conversation: Some(message.content.clone()),
+            conversation: Some(body_text),
             ..Default::default()
         };
 
@@ -237,6 +251,7 @@ impl Channel for WhatsAppWebChannel {
         // Build the bot
         let tx_clone = tx.clone();
         let allowed_numbers = self.allowed_numbers.clone();
+        let bot_identifier = self.bot_identifier.clone();
 
         let mut builder = Bot::builder()
             .with_backend(backend)
@@ -245,6 +260,7 @@ impl Channel for WhatsAppWebChannel {
             .on_event(move |event, _client| {
                 let tx_inner = tx_clone.clone();
                 let allowed_numbers = allowed_numbers.clone();
+                let bot_identifier = bot_identifier.clone();
                 async move {
                     match event {
                         Event::Message(msg, info) => {
@@ -268,12 +284,24 @@ impl Channel for WhatsAppWebChannel {
                             };
 
                             if allowed_numbers.iter().any(|n| n == "*" || n == &normalized) {
-                                let trimmed = text.trim();
+                                let mut trimmed = text.trim();
                                 if trimmed.is_empty() {
                                     tracing::debug!(
                                         "WhatsApp Web: ignoring empty or non-text message from {}",
                                         normalized
                                     );
+                                    return;
+                                }
+
+                                if let Some(bot_id) = &bot_identifier {
+                                    if !trimmed.starts_with(bot_id.as_str()) {
+                                        tracing::debug!("WhatsApp Web: ignoring message because it doesn't start with bot_identifier {}", bot_id);
+                                        return;
+                                    }
+                                    trimmed = trimmed.strip_prefix(bot_id.as_str()).unwrap_or(trimmed).trim_start();
+                                }
+
+                                if trimmed.is_empty() {
                                     return;
                                 }
 
@@ -497,6 +525,8 @@ mod tests {
             None,
             None,
             vec!["+1234567890".into()],
+            None,
+            None,
         )
     }
 
@@ -518,7 +548,7 @@ mod tests {
     #[test]
     #[cfg(feature = "whatsapp-web")]
     fn whatsapp_web_number_allowed_wildcard() {
-        let ch = WhatsAppWebChannel::new("/tmp/test.db".into(), None, None, vec!["*".into()]);
+        let ch = WhatsAppWebChannel::new("/tmp/test.db".into(), None, None, vec!["*".into()], None, None);
         assert!(ch.is_number_allowed("+1234567890"));
         assert!(ch.is_number_allowed("+9999999999"));
     }
@@ -526,7 +556,7 @@ mod tests {
     #[test]
     #[cfg(feature = "whatsapp-web")]
     fn whatsapp_web_number_denied_empty() {
-        let ch = WhatsAppWebChannel::new("/tmp/test.db".into(), None, None, vec![]);
+        let ch = WhatsAppWebChannel::new("/tmp/test.db".into(), None, None, vec![], None, None);
         // Empty allowlist means "deny all" (matches channel-wide allowlist policy).
         assert!(!ch.is_number_allowed("+1234567890"));
     }

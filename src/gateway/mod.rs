@@ -386,6 +386,8 @@ pub async fn run_gateway(host: &str, port: u16, config: Config) -> Result<()> {
                 wa.phone_number_id.clone().unwrap_or_default(),
                 wa.verify_token.clone().unwrap_or_default(),
                 wa.allowed_numbers.clone(),
+                wa.bot_identifier.clone(),
+                wa.response_prefix.clone(),
             ))
         });
 

@@ -2370,6 +2370,8 @@ pub async fn doctor_channels(config: Config) -> Result<()> {
                             wa.phone_number_id.clone().unwrap_or_default(),
                             wa.verify_token.clone().unwrap_or_default(),
                             wa.allowed_numbers.clone(),
+                            wa.bot_identifier.clone(),
+                            wa.response_prefix.clone(),
                         )),
                     ));
                 } else {
@@ -2387,6 +2389,8 @@ pub async fn doctor_channels(config: Config) -> Result<()> {
                             wa.pair_phone.clone(),
                             wa.pair_code.clone(),
                             wa.allowed_numbers.clone(),
+                            wa.bot_identifier.clone(),
+                            wa.response_prefix.clone(),
                         )),
                     ));
                 } else {
@@ -2795,6 +2799,8 @@ pub async fn start_channels(config: Config) -> Result<()> {
                         wa.phone_number_id.clone().unwrap_or_default(),
                         wa.verify_token.clone().unwrap_or_default(),
                         wa.allowed_numbers.clone(),
+                        wa.bot_identifier.clone(),
+                        wa.response_prefix.clone(),
                     )));
                 } else {
                     tracing::warn!("WhatsApp Cloud API configured but missing required fields (phone_number_id, access_token, verify_token)");
@@ -2809,6 +2815,8 @@ pub async fn start_channels(config: Config) -> Result<()> {
                         wa.pair_phone.clone(),
                         wa.pair_code.clone(),
                         wa.allowed_numbers.clone(),
+                        wa.bot_identifier.clone(),
+                        wa.response_prefix.clone(),
                     )));
                 } else {
                     tracing::warn!("WhatsApp Web configured but session_path not set");
